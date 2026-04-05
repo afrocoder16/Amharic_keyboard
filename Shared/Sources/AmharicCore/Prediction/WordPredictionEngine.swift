@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Provides Amharic word suggestions in two modes:
 ///   1. Mid-word completion: given a partial Ethiopic word prefix, return likely completions.

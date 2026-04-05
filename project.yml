@@ -1,0 +1,66 @@
+name: AmharicKeyboard
+
+options:
+  bundleIdPrefix: com.amharickeyboard
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Manual
+    ENABLE_BITCODE: NO
+
+packages:
+  AmharicCore:
+    path: Shared
+
+targets:
+
+  # ── Container App ─────────────────────────────────────────────────────────
+  AmharicKeyboard:
+    type: application
+    platform: iOS
+    sources:
+      - path: ContainerApp
+    dependencies:
+      - package: AmharicCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.amharickeyboard.app
+        PRODUCT_NAME: Amharic Keyboard
+        CODE_SIGN_ENTITLEMENTS: ContainerApp/AmharicKeyboardApp.entitlements
+        INFOPLIST_FILE: ContainerApp/Info.plist
+
+  # ── Keyboard Extension ────────────────────────────────────────────────────
+  KeyboardExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: KeyboardExtension
+    dependencies:
+      - package: AmharicCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.amharickeyboard.app.KeyboardExtension
+        PRODUCT_NAME: AmharicKeyboardExtension
+        CODE_SIGN_ENTITLEMENTS: KeyboardExtension/AmharicKeyboard.entitlements
+        INFOPLIST_FILE: KeyboardExtension/Info.plist
+
+schemes:
+  AmharicKeyboard:
+    build:
+      targets:
+        AmharicKeyboard: all
+        KeyboardExtension: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    archive:
+      config: Release

@@ -17,7 +17,7 @@ let package = Package(
             name: "AmharicCore",
             path: "Sources/AmharicCore",
             resources: [
-                .process("../../Resources")
+                .process("Resources")
             ]
         ),
     ]
