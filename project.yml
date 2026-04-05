@@ -29,8 +29,9 @@ targets:
       - path: ContainerApp
     dependencies:
       - package: AmharicCore
-      - target: KeyboardExtension   # embeds the keyboard extension inside the app
+      - target: KeyboardExtension   # embeds the extension — link:false because extensions are never linked
         embed: true
+        link: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.amharickeyboard.app

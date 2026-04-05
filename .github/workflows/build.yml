@@ -1,6 +1,5 @@
 name: Build Amharic Keyboard
 
-# Run on every push to main or any branch
 on:
   push:
     branches:
@@ -13,36 +12,30 @@ on:
 jobs:
   build:
     name: Build (macOS + Xcode)
-    runs-on: macos-15   # Xcode 16 — has iPhone 16 simulator
+    runs-on: macos-14   # ARM M1, Xcode 15 — stable and fast
 
     steps:
 
-      # 1. Check out the code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Show what Xcode and simulators are available
       - name: Xcode version
-        run: |
-          xcodebuild -version
-          xcrun simctl list devicetypes | grep iPhone | tail -5
+        run: xcodebuild -version
 
-      # 3. Cache Homebrew to speed up future runs
       - name: Cache Homebrew
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/Homebrew
-          key: brew-${{ runner.os }}-xcodegen
+          key: brew-${{ runner.os }}-xcodegen-v2
 
-      # 4. Install xcodegen (generates .xcodeproj from project.yml)
       - name: Install xcodegen
         run: brew install xcodegen || brew upgrade xcodegen
 
-      # 5. Generate the Xcode project from project.yml
+      # Generate .xcodeproj from project.yml
       - name: Generate Xcode project
-        run: xcodegen generate --spec project.yml
+        run: xcodegen generate --spec project.yml --verbose
 
-      # 6. Resolve Swift Package dependencies
+      # Resolve SPM packages
       - name: Resolve Swift packages
         run: |
           xcodebuild \
@@ -50,7 +43,7 @@ jobs:
             -scheme AmharicKeyboard \
             -resolvePackageDependencies
 
-      # 7. Build — CODE_SIGNING_ALLOWED=NO means no Apple account needed
+      # Build both targets — no signing needed for CI
       - name: Build
         run: |
           set -o pipefail
@@ -61,15 +54,13 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=NO \
-            build \
-            2>&1 | tee build_output.txt | \
-            grep -E "(error:|warning: |Build succeeded|FAILED|KeyboardExtension|AmharicKeyboard)" | \
-            grep -v "note:" || true
+            build 2>&1 | tee build_output.txt
 
-          # Make the step fail if xcodebuild itself failed
-          grep -q "BUILD SUCCEEDED" build_output.txt
+          # Print a clean summary
+          echo "--- Build Summary ---"
+          grep -E "^(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)" build_output.txt || true
 
-      # 8. Upload full build log on failure for debugging
+      # On failure, upload the full log so we can read it
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
