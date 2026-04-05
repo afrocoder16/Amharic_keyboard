@@ -3,7 +3,9 @@ import UIKit
 /// A horizontal row of Latin alphabet key buttons.
 final class LatinRowView: UIView {
 
-    weak var keyDelegate: KeyButtonDelegate?
+    weak var keyDelegate: KeyButtonDelegate? {
+        didSet { updateDelegates() }
+    }
 
     private let keys: [String]
     private var buttons: [KeyButton] = []
