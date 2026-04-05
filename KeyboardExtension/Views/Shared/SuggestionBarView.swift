@@ -79,11 +79,12 @@ final class SuggestionBarView: UIView {
     }
 
     private func makeButton(title: String) -> UIButton {
-        let btn = UIButton(type: .system)
-        btn.setTitle(title, for: .normal)
+        var config = UIButton.Configuration.plain()
+        config.title = title
+        config.baseForegroundColor = KeyboardTheme.keyLabel
+        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
+        let btn = UIButton(configuration: config)
         btn.titleLabel?.font = KeyboardTheme.suggestionFont()
-        btn.setTitleColor(KeyboardTheme.keyLabel, for: .normal)
-        btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
         btn.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
         return btn
     }

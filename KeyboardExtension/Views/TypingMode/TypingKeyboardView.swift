@@ -1,4 +1,5 @@
 import UIKit
+import Combine
 import AmharicCore
 
 protocol TypingKeyboardDelegate: AnyObject {
@@ -16,7 +17,7 @@ final class TypingKeyboardView: UIView {
     weak var delegate: TypingKeyboardDelegate?
 
     private let engine = TransliterationEngine()
-    private var observation: [Any] = []
+    private var cancellables = Set<AnyCancellable>()
     private var isShifted = false
 
     // MARK: - Layout rows
@@ -86,21 +87,26 @@ final class TypingKeyboardView: UIView {
     // MARK: - Engine Observation
 
     private func observeEngine() {
-        let c1 = engine.$markedText.sink { [weak self] text in
-            self?.delegate?.typingKeyboard(self!, didUpdateMarkedText: text)
-            self?.utilityView.spaceLabelText = text.isEmpty ? "space" : text
-        }
-        let c2 = engine.$committedText.sink { [weak self] text in
-            guard !text.isEmpty, let self = self else { return }
-            if text == "\u{08}" {
-                self.delegate?.typingKeyboardDidTapDelete(self)
-            } else {
-                self.delegate?.typingKeyboard(self, didInsertText: text)
+        engine.$markedText
+            .receive(on: RunLoop.main)
+            .sink { [weak self] text in
+                guard let self else { return }
+                self.delegate?.typingKeyboard(self, didUpdateMarkedText: text)
+                self.utilityView.spaceLabelText = text.isEmpty ? "space" : text
             }
-        }
-        // Store as Any to avoid import of Combine in non-Combine contexts
-        observation.append(c1)
-        observation.append(c2)
+            .store(in: &cancellables)
+
+        engine.$committedText
+            .receive(on: RunLoop.main)
+            .sink { [weak self] text in
+                guard !text.isEmpty, let self else { return }
+                if text == "\u{08}" {
+                    self.delegate?.typingKeyboardDidTapDelete(self)
+                } else {
+                    self.delegate?.typingKeyboard(self, didInsertText: text)
+                }
+            }
+            .store(in: &cancellables)
     }
 }
 

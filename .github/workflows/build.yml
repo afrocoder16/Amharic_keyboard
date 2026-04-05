@@ -1,0 +1,70 @@
+name: Build Amharic Keyboard
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build (macOS + Xcode)
+    runs-on: macos-14   # ARM M1, Xcode 15 — stable and fast
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ runner.os }}-xcodegen-v2
+
+      - name: Install xcodegen
+        run: brew install xcodegen || brew upgrade xcodegen
+
+      # Generate .xcodeproj from project.yml
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml --verbose
+
+      # Resolve SPM packages
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -project AmharicKeyboard.xcodeproj \
+            -scheme AmharicKeyboard \
+            -resolvePackageDependencies
+
+      # Build both targets — no signing needed for CI
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project AmharicKeyboard.xcodeproj \
+            -scheme AmharicKeyboard \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            build 2>&1 | tee build_output.txt
+
+          # Print a clean summary
+          echo "--- Build Summary ---"
+          grep -E "^(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)" build_output.txt || true
+
+      # On failure, upload the full log so we can read it
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build_output.txt
+          retention-days: 7

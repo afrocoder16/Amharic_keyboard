@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Converts a stream of Latin keystrokes into Ethiopic (Amharic) characters using
 /// greedy longest-match transliteration.
