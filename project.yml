@@ -14,7 +14,6 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Manual
-    ENABLE_BITCODE: NO
 
 packages:
   AmharicCore:
@@ -30,12 +29,15 @@ targets:
       - path: ContainerApp
     dependencies:
       - package: AmharicCore
+      - target: KeyboardExtension   # embeds the keyboard extension inside the app
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.amharickeyboard.app
-        PRODUCT_NAME: Amharic Keyboard
+        PRODUCT_NAME: "AmharicKeyboard"
         CODE_SIGN_ENTITLEMENTS: ContainerApp/AmharicKeyboardApp.entitlements
         INFOPLIST_FILE: ContainerApp/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
 
   # ── Keyboard Extension ────────────────────────────────────────────────────
   KeyboardExtension:
@@ -48,9 +50,10 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.amharickeyboard.app.KeyboardExtension
-        PRODUCT_NAME: AmharicKeyboardExtension
+        PRODUCT_NAME: KeyboardExtension
         CODE_SIGN_ENTITLEMENTS: KeyboardExtension/AmharicKeyboard.entitlements
         INFOPLIST_FILE: KeyboardExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
 
 schemes:
   AmharicKeyboard:

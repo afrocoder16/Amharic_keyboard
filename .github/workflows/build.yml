@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     name: Build (macOS + Xcode)
-    runs-on: macos-latest
+    runs-on: macos-15   # Xcode 16 — has iPhone 16 simulator
 
     steps:
 
@@ -21,23 +21,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Show Xcode version available on the runner
+      # 2. Show what Xcode and simulators are available
       - name: Xcode version
-        run: xcodebuild -version
+        run: |
+          xcodebuild -version
+          xcrun simctl list devicetypes | grep iPhone | tail -5
 
-      # 3. Cache Homebrew packages to speed up future runs
+      # 3. Cache Homebrew to speed up future runs
       - name: Cache Homebrew
         uses: actions/cache@v4
         with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/xcodegen
-          key: brew-xcodegen-${{ runner.os }}
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ runner.os }}-xcodegen
 
       # 4. Install xcodegen (generates .xcodeproj from project.yml)
       - name: Install xcodegen
-        run: |
-          brew install xcodegen || brew upgrade xcodegen
+        run: brew install xcodegen || brew upgrade xcodegen
 
       # 5. Generate the Xcode project from project.yml
       - name: Generate Xcode project
@@ -49,25 +48,28 @@ jobs:
           xcodebuild \
             -project AmharicKeyboard.xcodeproj \
             -scheme AmharicKeyboard \
-            -resolvePackageDependencies \
-            | grep -E "(error:|warning:|Resolved)" || true
+            -resolvePackageDependencies
 
-      # 7. Build the container app + keyboard extension
-      #    CODE_SIGNING_ALLOWED=NO means no Apple Developer account needed
+      # 7. Build — CODE_SIGNING_ALLOWED=NO means no Apple account needed
       - name: Build
         run: |
           set -o pipefail
           xcodebuild \
             -project AmharicKeyboard.xcodeproj \
             -scheme AmharicKeyboard \
-            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=YES \
+            ONLY_ACTIVE_ARCH=NO \
             build \
-            2>&1 | tee build_output.txt | grep -E "(error:|warning:|Build succeeded|** BUILD)"
+            2>&1 | tee build_output.txt | \
+            grep -E "(error:|warning: |Build succeeded|FAILED|KeyboardExtension|AmharicKeyboard)" | \
+            grep -v "note:" || true
 
-      # 8. Upload the build log if something goes wrong
+          # Make the step fail if xcodebuild itself failed
+          grep -q "BUILD SUCCEEDED" build_output.txt
+
+      # 8. Upload full build log on failure for debugging
       - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4

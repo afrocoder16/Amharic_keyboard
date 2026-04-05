@@ -77,12 +77,13 @@ final class HandwritingView: UIView {
         clearButton.setTitleColor(.systemBlue, for: .normal)
         clearButton.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
 
-        spaceButton.setTitle("Space  →  Insert Word", for: .normal)
-        spaceButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        spaceButton.setTitleColor(.white, for: .normal)
-        spaceButton.backgroundColor = .systemBlue
+        var spaceConfig = UIButton.Configuration.filled()
+        spaceConfig.title = "Space  →  Insert Word"
+        spaceConfig.baseForegroundColor = .white
+        spaceConfig.baseBackgroundColor = .systemBlue
+        spaceConfig.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
+        spaceButton.configuration = spaceConfig
         spaceButton.layer.cornerRadius = 8
-        spaceButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
         spaceButton.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
 
         let bottomStack = UIStackView(arrangedSubviews: [clearButton, UIView(), spaceButton])
