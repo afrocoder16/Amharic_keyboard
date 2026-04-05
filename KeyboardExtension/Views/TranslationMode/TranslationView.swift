@@ -24,7 +24,7 @@ final class TranslationView: UIView {
     private var sourceLang = "am"
     private var targetLang = "en"
 
-    private let translationService: TranslationService = LibreTranslateClient()
+    private let translationService: TranslationService = GoogleTranslateClient()
     private var translationTask: Task<Void, Never>?
     private var debounceTimer: Timer?
 

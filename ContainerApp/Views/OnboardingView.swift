@@ -79,6 +79,16 @@ final class OnboardingViewController: UIViewController {
         settingsBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
         settingsBtn.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
 
+        // Google Translate API key button
+        let apiKeyBtn = UIButton(type: .system)
+        apiKeyBtn.setTitle("Set Google Translate API Key", for: .normal)
+        apiKeyBtn.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+        apiKeyBtn.backgroundColor = .systemIndigo
+        apiKeyBtn.setTitleColor(.white, for: .normal)
+        apiKeyBtn.layer.cornerRadius = 12
+        apiKeyBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        apiKeyBtn.addTarget(self, action: #selector(openApiKeySettings), for: .touchUpInside)
+
         // Test field
         let testLabel = makeLabel("Try it here:", style: .headline)
         let testField = UITextField()
@@ -87,9 +97,14 @@ final class OnboardingViewController: UIViewController {
         testField.font = UIFont.systemFont(ofSize: 16)
         testField.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
-        [header, subtitle, step1, step2, step3, step4, settingsBtn, testLabel, testField].forEach {
+        [header, subtitle, step1, step2, step3, step4, settingsBtn, apiKeyBtn, testLabel, testField].forEach {
             stackView.addArrangedSubview($0)
         }
+    }
+
+    @objc private func openApiKeySettings() {
+        let vc = ApiKeySettingsViewController()
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     @objc private func openSettings() {

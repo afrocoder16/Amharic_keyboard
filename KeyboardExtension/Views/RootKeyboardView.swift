@@ -30,6 +30,12 @@ final class RootKeyboardView: UIView {
 
     private let predictionEngine = WordPredictionEngine()
 
+    /// Buffer of Ethiopic characters accumulated from handwriting strokes.
+    /// These are shown as marked (underlined) text in the host document while
+    /// the user keeps drawing. The suggestion bar shows word completions based
+    /// on this buffer. Tapping a suggestion replaces the buffer with the full word.
+    private var handwritingBuffer: String = ""
+
     private var heightConstraint: NSLayoutConstraint!
     private var currentMode: KeyboardMode = .typing
 
@@ -97,6 +103,10 @@ final class RootKeyboardView: UIView {
     // MARK: - Mode Switching
 
     private func switchMode(_ mode: KeyboardMode) {
+        // Flush handwriting buffer when leaving handwriting mode
+        if currentMode == .handwriting && mode != .handwriting {
+            flushHandwritingBuffer()
+        }
         currentMode = mode
 
         typingView.isHidden      = mode != .typing
@@ -108,6 +118,38 @@ final class RootKeyboardView: UIView {
             self.heightConstraint.constant = mode.preferredHeight
             self.delegate?.rootKeyboard(self, didChangeHeight: mode.preferredHeight)
         }
+    }
+
+    // MARK: - Handwriting Buffer
+
+    /// Append a newly recognized character to the handwriting buffer.
+    /// Updates marked text in the document and refreshes word predictions.
+    private func appendToHandwritingBuffer(_ character: Character) {
+        handwritingBuffer.append(character)
+        // Show the accumulated characters as underlined (marked) text
+        delegate?.rootKeyboard(self, didUpdateMarkedText: handwritingBuffer)
+        // Update the word preview label inside the handwriting view
+        handwritingView.currentWordPreview = handwritingBuffer
+        // Feed the buffer into prediction engine for prefix completions
+        predictionEngine.updateMidWord(prefix: handwritingBuffer)
+        suggestionBar.update(suggestions: predictionEngine.suggestions)
+    }
+
+    /// Commit all buffered handwriting characters, optionally replacing with a word.
+    private func commitHandwritingBuffer(replacingWith word: String? = nil) {
+        guard !handwritingBuffer.isEmpty else { return }
+        let toInsert = word ?? handwritingBuffer
+        handwritingBuffer = ""
+        handwritingView.currentWordPreview = ""
+        // Insert the committed text (clears marked text automatically)
+        delegate?.rootKeyboard(self, didInsertText: toInsert)
+        predictionEngine.wordCommitted(toInsert.trimmingCharacters(in: .whitespaces))
+        suggestionBar.update(suggestions: predictionEngine.suggestions)
+    }
+
+    /// Flush buffer as-is (e.g. when switching modes or pressing space).
+    private func flushHandwritingBuffer() {
+        commitHandwritingBuffer()
     }
 
     // MARK: - Prediction Observation
@@ -138,8 +180,14 @@ extension RootKeyboardView: KeyboardTabBarDelegate {
 
 extension RootKeyboardView: SuggestionBarDelegate {
     func suggestionBar(_ bar: SuggestionBarView, didSelectSuggestion word: String) {
-        delegate?.rootKeyboard(self, didInsertText: word + " ")
-        predictionEngine.wordCommitted(word)
+        if currentMode == .handwriting && !handwritingBuffer.isEmpty {
+            // Replace the accumulated handwriting characters with the selected word
+            commitHandwritingBuffer(replacingWith: word + " ")
+        } else {
+            delegate?.rootKeyboard(self, didInsertText: word + " ")
+            predictionEngine.wordCommitted(word)
+            suggestionBar.update(suggestions: predictionEngine.suggestions)
+        }
     }
 }
 
@@ -178,8 +226,16 @@ extension RootKeyboardView: TypingKeyboardDelegate {
 // MARK: - HandwritingViewDelegate
 
 extension RootKeyboardView: HandwritingViewDelegate {
+    /// Called when the user taps one of the top-5 recognition candidates.
+    /// The character is added to the accumulation buffer, not inserted directly.
+    /// The suggestion bar updates with Amharic word completions for the buffer.
     func handwritingView(_ view: HandwritingView, didSelectCharacter character: Character) {
-        delegate?.rootKeyboard(self, didInsertText: String(character))
+        appendToHandwritingBuffer(character)
+    }
+
+    /// Called when the user taps the space/commit button in handwriting mode.
+    func handwritingViewDidTapSpace(_ view: HandwritingView) {
+        commitHandwritingBuffer(replacingWith: (handwritingBuffer.isEmpty ? nil : handwritingBuffer + " "))
     }
 }
 
